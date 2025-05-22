@@ -1,0 +1,825 @@
+scalar AWSDateTime
+scalar AWSURL
+
+type Query {
+    collection(id: ID!): Collection @aws_api_key @aws_cognito_user_pools
+    cart(id: ID!): Cart @aws_api_key @aws_cognito_user_pools
+    menu(id: ID!): Menu @aws_api_key @aws_cognito_user_pools
+    menus(page: Int = 1, limit: Int = 10, sort: [SortInput]): MenuConnection! @aws_api_key @aws_cognito_user_pools
+    product(id: ID!): Product
+    products(page: Int = 1, limit: Int = 10, sort: [SortInput], params: ProductParams): ProductConnection! @aws_api_key @aws_cognito_user_pools
+    collections(page: Int = 1, limit: Int = 10, sort: [SortInput]): CollectionConnection! @aws_api_key @aws_cognito_user_pools
+}
+type Mutation {
+    signUp(email: String!, password: String!, storefrontId: String!): AuthPayload @aws_api_key
+    signIn(email: String!, password: String!, storefrontId: String!): AuthPayload @aws_api_key
+    confirmSignUp(email: String!, verificationCode: String!): AuthPayload @aws_api_key
+    cartCreate(input: CartInput): CartCreatePayload @aws_api_key @aws_cognito_user_pools
+    cartLinesAdd(cartId: ID!, lines: [CartLineInput!]!): CartLinesAddPayload @aws_api_key @aws_cognito_user_pools
+    cartLinesRemove(cartId: ID!, lineIds: [ID!]!): CartLinesRemovePayload @aws_api_key @aws_cognito_user_pools
+    cartLinesUpdate(cartId: ID!, lines: [CartLineUpdateInput!]!): CartLinesUpdatePayload @aws_api_key @aws_cognito_user_pools
+    customerAddressCreate(address: MailingAddressInput!): CustomerAddressCreatePayload @aws_cognito_user_pools
+    customerAddressUpdate(address: MailingAddressInput!, id: ID!): CustomerAddressUpdatePayload @aws_cognito_user_pools
+    customerAddressDelete(id: ID!): CustomerAddressDeletePayload @aws_cognito_user_pools
+    customerUpdate(customer: CustomerUpdateInput): CustomerUpdatePayload @aws_cognito_user_pools
+    customerDefaultAddressUpdate(addressId: ID!): CustomerDefaultAddressUpdatePayload @aws_cognito_user_pools
+}
+#type Subscription {}
+
+input SortInput @aws_api_key @aws_cognito_user_pools {
+    field: String!
+    order: SortOrder!
+}
+enum SortOrder @aws_api_key @aws_cognito_user_pools {
+    ASC
+    DESC
+}
+type PageInfo @aws_api_key @aws_cognito_user_pools {
+    totalCount: Int!
+    totalPages: Int!
+    currentPage: Int!
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+}
+
+type AuthPayload @aws_api_key @aws_cognito_user_pools{
+    message: String!
+    idToken: String
+    accessToken: String
+    refreshToken: String
+    error: String
+}
+#-----------------CART-----------------#
+input CartInput @aws_api_key @aws_cognito_user_pools {
+    buyerIdentity: CartBuyerIdentityInput
+    delivery: CartDeliveryInput
+    lines: [CartLineInput!]
+    note: String
+}
+input CartBuyerIdentityInput @aws_api_key @aws_cognito_user_pools {
+    countryCode: CountryCode
+    customerAccessToken: String
+    email: String
+    phone: String
+}
+input CartDeliveryInput @aws_api_key @aws_cognito_user_pools {
+    addresses: [CartSelectableAddressInput!]
+}
+input CartSelectableAddressInput @aws_api_key @aws_cognito_user_pools {
+    address: CartAddressInput!
+    oneTimeUse: Boolean
+    selected: Boolean
+}
+input CartAddressInput @aws_api_key @aws_cognito_user_pools {
+    copyFromCustomerAddressId: ID
+    deliveryAddress: CartDeliveryAddressInput
+}
+input CartDeliveryAddressInput @aws_api_key @aws_cognito_user_pools {
+    address1: String
+    address2: String
+    city: String
+    company: String
+    countryCode: String
+    firstName: String
+    lastName: String
+    phone: String
+    zip: String
+}
+input CartLineInput @aws_api_key @aws_cognito_user_pools {
+    merchandiseId: ID!
+    quantity: Int
+}
+type Money @aws_api_key @aws_cognito_user_pools {
+    amount: String
+    currencyCode: CurrencyCode
+}
+type CartCost @aws_api_key @aws_cognito_user_pools {
+    checkoutChargeAmount: Money!
+    subtotalAmount: Money!
+    subtotalAmountEstimated: Boolean!
+    totalAmount: Money
+    totalAmountEstimated: Boolean!
+}
+type MailingAddress @aws_api_key @aws_cognito_user_pools {
+    address1: String
+    address2: String
+    city: String
+    company: String
+    country: String
+    countryCode: CountryCode
+    firstName: String
+    id: ID!
+    lastName: String
+    name: String
+    phone: String
+    zip: String
+}
+type Customer @aws_api_key @aws_cognito_user_pools {
+    acceptsMarketing: Boolean
+    addresses: [MailingAddress!] #Pagination eklenerek tipi değiştirilebilir.
+    createdAt: AWSDateTime
+    defaultAddress: MailingAddress
+    displayName: String
+    email: String
+    firstName: String
+    id: ID
+    lastName: String
+    phone: String
+    updatedAt: String
+}
+type CartBuyerIdentity @aws_api_key @aws_cognito_user_pools {
+    countryCode: CountryCode
+    customer: Customer
+    email: String
+    phone: String
+}
+type CartDeliveryAddress @aws_api_key @aws_cognito_user_pools {
+    address1: String
+    address2: String
+    city: String
+    company: String
+    countryCode: String
+    firstName: String
+    lastName: String
+    name: String
+    phone: String
+    zip: String
+}
+type CartAddress @aws_api_key @aws_cognito_user_pools {
+    CartDeliveryAddress: CartDeliveryAddress
+}
+type CartSelectableAddress @aws_api_key @aws_cognito_user_pools {
+    address: CartAddress!
+    id: ID!
+    oneTimeUse: Boolean!
+    selected: Boolean!
+}
+type CartDelivery @aws_api_key @aws_cognito_user_pools {
+    addresses: [CartSelectableAddress!]!
+}
+type Merchandise @aws_api_key @aws_cognito_user_pools {
+    ProductVariant: ProductVariant
+}
+type CartLineCost @aws_api_key @aws_cognito_user_pools {
+    amountPerQuantity: Money
+    compareAtAmountPerQuantity: Money
+    subtotalAmount: Money
+    totalAmount: Money
+}
+type BaseCartLine @aws_api_key @aws_cognito_user_pools {
+    cost: CartLineCost!
+    id: ID!
+    merchandise: Merchandise!
+    quantity: Int!
+}
+type Cart @aws_api_key @aws_cognito_user_pools {
+    buyerIdentity: CartBuyerIdentity
+    checkoutUrl: AWSURL
+    cost: CartCost!
+    createdAt: AWSDateTime!
+    delivery: CartDelivery!
+    id: ID!
+    lines: [BaseCartLine]!
+    note: String
+    totalQuantity: Int!
+    updatedAt: AWSDateTime
+}
+enum CartErrorCode @aws_api_key @aws_cognito_user_pools {
+    ALREADY_HAS_LINE_ITEM
+    CHECKOUT_NOT_SUPPORTED
+    INVALID_GIFT_CARD
+    INVALID_LINE_ITEM_ID
+    LINE_ITEM_NOT_FOUND
+    MAX_LIMIT_REACHED
+    MIN_QUANTITY_REQUIRED
+    QUANTITY_TOO_HIGH
+    REQUIRED_FIELD_MISSING
+    UNAVAILABLE_DISCOUNT_CODE
+    UNAVAILABLE_PRODUCT
+    UNAVAILABLE_SHIPPING_OPTION
+    UNKNOWN_ERROR
+}
+type CartUserError @aws_api_key @aws_cognito_user_pools {
+    code: CartErrorCode
+    field: [String]
+    message: String
+}
+enum CartWarningCode @aws_api_key @aws_cognito_user_pools {
+    DUPLICATE_DELIVERY_ADDRESS
+    MERCHANDISE_NOT_ENOUGH_STOCK
+    MERCHANDISE_OUT_OF_STOCK
+    PAYMENTS_GIFT_CARDS_UNAVAILABLE
+}
+type CartWarning @aws_api_key @aws_cognito_user_pools {
+    code: CartWarningCode!
+    message: String!
+    target: ID!
+}
+type CartCreatePayload @aws_api_key @aws_cognito_user_pools {
+    cart: Cart
+    userErrors: [CartUserError!]
+    warnings: [CartWarning!]
+}
+type CartLinesAddPayload @aws_api_key @aws_cognito_user_pools {
+    cart: Cart
+    userErrors: [CartUserError!]
+    warnings: [CartWarning!]
+}
+type CartLinesRemovePayload @aws_api_key @aws_cognito_user_pools {
+    cart: Cart
+    userErrors: [CartUserError!]
+    warnings: [CartWarning!]
+}
+enum CurrencyCode @aws_api_key @aws_cognito_user_pools {
+    USD
+    EUR
+    GBP
+    CAD
+    AFN
+    ALL
+    DZD
+    AOA
+    ARS
+    AMD
+    AWG
+    AUD
+    BBD
+    AZN
+    BDT
+    BSD
+    BHD
+    BYR
+    BZD
+    BTN
+    BAM
+    BRL
+    BOB
+    BWP
+    BND
+    BGN
+    MMK
+    KHR
+    KYD
+    XAF
+    CLP
+    CNY
+    COP
+    KMF
+    CDF
+    CRC
+    HRK
+    CZK
+    DKK
+    DOP
+    XCD
+    EGP
+    ETB
+    XPF
+    FJD
+    GMD
+    GHS
+    GTQ
+    GYD
+    GEL
+    HTG
+    HNL
+    HKD
+    HUF
+    ISK
+    INR
+    IDR
+    ILS
+    JMD
+    JPY
+    JEP
+    JOD
+    KZT
+    KES
+    KWD
+    KGS
+    LAK
+    LVL
+    LBP
+    LSL
+    LRD
+    LTL
+    MGA
+    MKD
+    MOP
+    MWK
+    MVR
+    MXN
+    MYR
+    MUR
+    MDL
+    MAD
+    MNT
+    MZN
+    NAD
+    NPR
+    ANG
+    NZD
+    NIO
+    NGN
+    NOK
+    OMR
+    PKR
+    PGK
+    PYG
+    PEN
+    PHP
+    PLN
+    QAR
+    RON
+    RUB
+    RWF
+    WST
+    SAR
+    STD
+    RSD
+    SCR
+    SGD
+    SDG
+    SYP
+    ZAR
+    KRW
+    SBD
+    LKR
+    SRD
+    SEK
+    CHF
+    TWD
+    THB
+    TZS
+    TTD
+    TND
+    TRY
+    TMT
+    UGX
+    UAH
+    AED
+    UYU
+    UZS
+    VUV
+    VEF
+    VND
+    XOF
+    YER
+    ZMW
+}
+enum CountryCode @aws_api_key @aws_cognito_user_pools {
+    AC
+    AD
+    AE
+    AF
+    AG
+    AI
+    AL
+    AM
+    AO
+    AR
+    AS
+    AT
+    AU
+    AW
+    AX
+    AZ
+    BA
+    BB
+    BD
+    BE
+    BF
+    BG
+    BH
+    BI
+    BJ
+    BL
+    BM
+    BN
+    BO
+    BQ
+    BR
+    BS
+    BT
+    BV
+    BW
+    BY
+    BZ
+    CA
+    CC
+    CD
+    CF
+    CG
+    CH
+    CI
+    CK
+    CL
+    CM
+    CN
+    CO
+    CR
+    CU
+    CV
+    CW
+    CX
+    CY
+    CZ
+    DE
+    DJ
+    DK
+    DM
+    DO
+    DZ
+    EC
+    EE
+    EG
+    EH
+    ER
+    ES
+    ET
+    FI
+    FJ
+    FK
+    FM
+    FO
+    FR
+    GA
+    GB
+    GD
+    GE
+    GF
+    GG
+    GH
+    GI
+    GL
+    GM
+    GN
+    GP
+    GQ
+    GR
+    GT
+    GU
+    GW
+    GY
+    HK
+    HM
+    HN
+    HR
+    HT
+    HU
+    ID
+    IE
+    IL
+    IM
+    IN
+    IO
+    IQ
+    IR
+    IS
+    IT
+    JE
+    JM
+    JO
+    JP
+    KE
+    KG
+    KH
+    KI
+    KM
+    KN
+    KP
+    KR
+    KW
+    KY
+    KZ
+    LA
+    LB
+    LC
+    LI
+    LK
+    LR
+    LS
+    LT
+    LU
+    LV
+    LY
+    MA
+    MC
+    MD
+    ME
+    MF
+    MG
+    MH
+    MK
+    ML
+    MM
+    MN
+    MO
+    MP
+    MQ
+    MR
+    MS
+    MT
+    MU
+    MV
+    MW
+    MX
+    MY
+    MZ
+    NA
+    NC
+    NE
+    NF
+    NG
+    NI
+    NL
+    NO
+    NP
+    NR
+    NU
+    NZ
+    OM
+    PA
+    PE
+    PF
+    PG
+    PH
+    PK
+    PL
+    PM
+    PN
+    PR
+    PT
+    PW
+    PY
+    QA
+    RE
+    RO
+    RS
+    RU
+    RW
+    SA
+    SB
+    SC
+    SD
+    SE
+    SG
+    SH
+    SI
+    SJ
+    SK
+    SL
+    SM
+    SN
+    SO
+    SR
+    SS
+    ST
+    SV
+    SX
+    SY
+    SZ
+    TC
+    TD
+    TF
+    TG
+    TH
+    TJ
+    TK
+    TL
+    TM
+    TN
+    TO
+    TR
+    TT
+    TV
+    TZ
+    UA
+    UG
+    UM
+    US
+    UY
+    UZ
+    VA
+    VC
+    VE
+    VG
+    VI
+    VN
+    VU
+    WF
+    WS
+    YE
+    YT
+    ZA
+    ZM
+    ZW
+}
+input CartLineUpdateInput @aws_api_key @aws_cognito_user_pools {
+    id: ID!
+    merchandiseId: ID
+    quantity: Int
+}
+type CartLinesUpdatePayload @aws_api_key @aws_cognito_user_pools {
+    cart: Cart
+    userErrors: [CartUserError]
+    warnings: [CartWarning]
+}
+type ProductVariant @aws_api_key @aws_cognito_user_pools {
+    id: ID
+    createdDate: AWSDateTime
+    barcode: String
+    compareAtPrice: String
+    grams: Int
+    #    image: Media
+    #    inventoryItem
+    inventoryPolicy: ProductVariantInventoryPolicy
+    inventoryQuantity: Int
+    oldInventoryQuantity: Int
+    position: Int
+    price: String
+    requiresShipping: Boolean
+    sku: String
+    taxable: String
+    taxCode: String
+    title: String
+    weight: Int
+    weightUnit: String
+    stock: String
+    stockCode: String
+    variantOptions: [ProductVariantOptionValue]
+}
+enum ProductVariantInventoryPolicy @aws_api_key @aws_cognito_user_pools {
+    DENY
+    CONTINUE
+}
+type ProductVariantOptionValue @aws_api_key @aws_cognito_user_pools {
+    productVariant: ProductVariant
+    productOption: ProductOption
+    productOptionValue: ProductOptionValue
+}
+type ProductOption @aws_api_key @aws_cognito_user_pools {
+    id: ID
+    name: String
+    optionValues: [ProductOptionValue]
+}
+type ProductOptionValue @aws_api_key @aws_cognito_user_pools {
+    id: ID
+    value: String
+}
+
+#-----------------MENU-----------------#
+type Menu @aws_api_key @aws_cognito_user_pools {
+    handle: String!
+    id: ID!
+    isDefault: Boolean!
+    items: [MenuItem!]!
+    title: String!
+}
+
+type MenuItem @aws_api_key @aws_cognito_user_pools {
+    id: ID!
+    title: String!
+    type: MenuItemType!
+    url: String
+}
+
+enum MenuItemType @aws_api_key @aws_cognito_user_pools {
+    ARTICLE
+    BLOG
+    CATALOG
+    COLLECTION
+    COLLECTIONS
+    CUSTOMER_ACCOUNT_PAGE
+    FRONTPAGE
+    HTTP
+    METAOBJECT
+    PAGE
+    PRODUCT
+    SEARCH
+    SHOP_POLICY
+}
+
+type MenuConnection @aws_api_key @aws_cognito_user_pools {
+    nodes: [Menu]
+    pageInfo: PageInfo!
+}
+
+type Image @aws_api_key @aws_cognito_user_pools {
+    altText: String
+    height: Int
+    width: Int
+    id: ID
+    url: AWSURL!
+}
+type Collection @aws_api_key @aws_cognito_user_pools {
+    id: String
+    createdAt: AWSDateTime
+    updatedAt: AWSDateTime
+    descriptionHtml: String
+    title: String!
+    image: Image
+    handle: String
+    products(page: Int = 1, limit: Int = 10, sort: [SortInput]): ProductConnection
+}
+input ProductParams @aws_api_key @aws_cognito_user_pools {
+    collectionId: String
+}
+
+type CollectionConnection @aws_api_key @aws_cognito_user_pools {
+    nodes: [Collection]
+    pageInfo: PageInfo!
+}
+
+type Category @aws_api_key @aws_cognito_user_pools {
+    id: ID
+}
+enum ProductStatus @aws_api_key @aws_cognito_user_pools {
+    ACTIVE
+    DRAFT
+    ARCHIVED
+}
+type Product @aws_api_key @aws_cognito_user_pools {
+    id: String
+    createdDate: AWSDateTime
+    publishedDate: AWSDateTime
+    descriptionHtml: String
+    category: Category
+    #    featuredMedia: Media
+    handle: String
+    status: ProductStatus
+    type: String
+    #    tags: String
+    title: String
+    totalInventory: Int
+    tracksInventory: Boolean
+    vendor: String
+    variants: [ProductVariant]
+    options: [ProductOption]
+}
+type ProductConnection @aws_api_key @aws_cognito_user_pools {
+    nodes: [Product]
+    pageInfo: PageInfo!
+}
+
+input MailingAddressInput @aws_cognito_user_pools {
+    address1: String
+    address2: String
+    city: String
+    company: String
+    country: String
+    firstName: String
+    lastName: String
+    phone: String
+    zip: String
+}
+type CustomerAddressCreatePayload @aws_cognito_user_pools {
+    customerAddress: MailingAddress
+    customerUserErrors: [CustomerUserError!]!
+}
+type CustomerAddressUpdatePayload @aws_cognito_user_pools {
+    customerAddress: MailingAddress
+    customerUserErrors: [CustomerUserError!]!
+}
+type CustomerAddressDeletePayload @aws_cognito_user_pools {
+    deletedCustomerAddressId: String
+    customerUserErrors: [CustomerUserError!]!
+}
+type CustomerUserError @aws_cognito_user_pools {
+    code: CustomerErrorCode
+    field: [String!]
+    message: String!
+}
+
+enum CustomerErrorCode @aws_cognito_user_pools {
+    ALREADY_ENABLED
+    BAD_DOMAIN
+    BLANK
+    CONTAINS_HTML_TAGS
+    CONTAINS_URL
+    CUSTOMER_DISABLED
+    INVALID
+    INVALID_MULTI_PASS_REQUEST
+    NOT_FOUND
+    PASSWORD_STARTS_OR_ENDS_WITH_WHITESPACE
+    TAKEN
+    TOO_LONG
+    TOO_SHORT
+    UNIDENTIFIED_CUSTOMER
+}
+
+type CustomerDefaultAddressUpdatePayload @aws_cognito_user_pools {
+    customer: Customer
+    customerUserErrors: [CustomerUserError!]!
+}
+
+type CustomerUpdatePayload @aws_cognito_user_pools {
+    customer: Customer
+    customerUserErrors: [CustomerUserError!]!
+}
+
+input CustomerUpdateInput @aws_cognito_user_pools {
+    firstName: String
+    lastName: String
+    phone: String
+}
